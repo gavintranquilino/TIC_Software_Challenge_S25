@@ -13,7 +13,7 @@ import rclpy.qos
 from copy import copy
 
 class Robot(Node):
-    def __init__(self, IS_SIM : bool = True, DEBUG : bool = False, TAG_SIZE : float = 0.25, CONST_speed_control : float = 1.0):
+    def __init__(self, IS_SIM : bool = True, DEBUG : bool = False, TAG_SIZE : float = 0.25, CONST_speed_control : float = 1.0, node_init_parameters=None):
         ''' Set up the ros2 node for all the subscribers needed in the challenge as well as run use_hardware when IS_SIM is False. '''
         # Set constants 
         self.IS_SIM = IS_SIM
@@ -23,7 +23,7 @@ class Robot(Node):
         if not rclpy.ok():
             rclpy.init()
         self.use_hardware()
-        super().__init__('notebook_wrapper')
+        super().__init__('notebook_wrapper', parameter_overrides=node_init_parameters)
         # Create custom qos profile to make subscribers time out faster once notebook
         qos_profile_sensor_data = copy(rclpy.qos.qos_profile_sensor_data)
         qos_policy = copy(rclpy.qos.qos_profile_sensor_data)

@@ -8,9 +8,13 @@ import math # i need trig functions
 
 class CostmapNode(Node):
     def __init__(self, resolution=0.05, map_width_pixels=200, map_height_pixels=200, 
-                 inflation_radius_meters=0.1, max_obstacle_cost=100, unknown_cost=-1): 
-        super().__init__('costmap_node')
-        self.get_logger().info('Costmap Node Initialized with new parameters')
+                 inflation_radius_meters=0.1, max_obstacle_cost=100, unknown_cost=-1, node_init_parameters=None): 
+        super().__init__('costmap_node', parameter_overrides=node_init_parameters)
+        self.get_logger().info('Costmap Node Initialized') # Simplified message
+
+        # Add new flag for imminent obstacle detection
+        self.obstacle_imminently_close = False
+        self.imminent_obstacle_angle = 0.0 # Angle of the closest imminent obstacle in radians
 
         # Costmap params
         self.map_width_pixels = map_width_pixels # units of cells
@@ -127,6 +131,40 @@ class CostmapNode(Node):
 
 
     def lidar_callback(self, scan_msg: LaserScan):
+        # self.get_logger().info("lidar_callback: Received new LaserScan data.")
+
+        # Reset imminent obstacle flag at the start of each scan processing
+        self.obstacle_imminently_close = False
+        min_overall_detected_range = float('inf') # For logging the absolute minimum if needed
+        
+        closest_imminent_obstacle_range = float('inf') # For the specific <=0.3m logic
+        temp_imminent_obstacle_angle = 0.0 # Angle for the closest imminent obstacle
+
+        # Check for imminently close obstacles based on raw Lidar data and find minimum range
+        for i, range_val in enumerate(scan_msg.ranges):
+            if scan_msg.range_min <= range_val <= scan_msg.range_max: # Check if the range is valid
+                if range_val < min_overall_detected_range:
+                    min_overall_detected_range = range_val # Update overall minimum range
+                
+                if range_val <= 0.3: # Obstacle within imminent threshold
+                    self.obstacle_imminently_close = True # Set flag
+                    if range_val < closest_imminent_obstacle_range: # Is this the closest *imminent* one?
+                        closest_imminent_obstacle_range = range_val
+                        # Calculate angle relative to robot's front (0 radians)
+                        temp_imminent_obstacle_angle = scan_msg.angle_min + (i * scan_msg.angle_increment)
+        
+        if self.obstacle_imminently_close:
+            self.imminent_obstacle_angle = temp_imminent_obstacle_angle
+            # self.get_logger().info(f"Lidar direct check: Obstacle within 0.3m. Closest at {closest_imminent_obstacle_range:.2f}m, angle {self.imminent_obstacle_angle:.2f}rad. Flagging imminent danger.")
+        else:
+            self.imminent_obstacle_angle = 0.0 # Reset if no imminent obstacle
+            # Optional: Log if an obstacle was seen but not imminently close
+            # if min_overall_detected_range != float('inf'):
+            #    self.get_logger().info(f"Lidar direct check: Minimum detected range in current scan: {min_overall_detected_range:.2f}m (not imminent).")
+            # else:
+            #    self.get_logger().info("Lidar direct check: No valid ranges detected in current scan.")
+
+
         self._init_costmap() # Re-initialize map on each scan, as per C++ logic
 
         for i, range_val in enumerate(scan_msg.ranges):
@@ -145,9 +183,11 @@ class CostmapNode(Node):
                 self._mark_obstacle(grid_x, grid_y)
         
         self.inflate_obstacles()
+        # self.get_logger().info("lidar_callback: Finished processing LaserScan and inflating obstacles.") # New log
         # The OccupancyGrid will be published by the timer_callback using self.costmap_
 
     def timer_callback(self): 
+        # self.get_logger().info("timer_callback: Preparing to publish OccupancyGrid.") 
         grid_msg = OccupancyGrid()
         grid_msg.header.stamp = self.get_clock().now().to_msg()
         grid_msg.header.frame_id = self.map_frame_id
@@ -166,6 +206,7 @@ class CostmapNode(Node):
         grid_msg.data = self.costmap_.flatten().tolist()
         
         self.costmap_publisher_.publish(grid_msg)
+        # self.get_logger().info(f"timer_callback: OccupancyGrid published to {self.costmap_publisher_.topic_name}.") 
 
 def main(args=None):
     rclpy.init(args=args)
