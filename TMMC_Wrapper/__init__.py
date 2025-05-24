@@ -5,7 +5,7 @@ from .Lidar import Lidar
 from .Logging import Logging
 from .Control import Control
 from .Robot import Robot
-from .Costmap import CostmapNode
+from .Solution_Nodes.Costmap import CostmapNode # Import CostmapNode
 
 
 __all__ = [
@@ -15,5 +15,5 @@ __all__ = [
     "Lidar",
     "Logging",
     "Robot",
-    "CostmapNode"
+    "CostmapNode" # Add CostmapNode to __all__
 ]

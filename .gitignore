@@ -2,6 +2,7 @@ turtlebot4_sim_docker/
 robohub/
 .gazebo/
 TMMC_Wrapper/__pycache__/
+TMMC_Wrapper/Solution_Nodes/__pycache__
 .bash_profile
 .bashrc
 .gitconfig
