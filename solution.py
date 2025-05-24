@@ -6,13 +6,13 @@ import time
 from ultralytics import YOLO
 
 # Variable for controlling which level of the challenge to test -- set to 0 for pure keyboard control
-challengeLevel = 0
+challengeLevel = 1
 
 # Set to True if you want to run the simulation, False if you want to run on the real robot
 is_SIM = True
 
 # Set to True if you want to run in debug mode with extra print statements, False otherwise
-Debug = False
+Debug = True
 
 # Initialization    
 if not "robot" in globals():
