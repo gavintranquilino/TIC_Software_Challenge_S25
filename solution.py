@@ -27,12 +27,12 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
 
     # 1. Stop the robot
     robot.get_logger().info("Safety Maneuver: Stopping robot.")
-    control.set_cmd_vel(0.0, 0.0, duration=1)
+    control.set_cmd_vel(0.0, 0.0, duration=2)
 
     # Parameters for backward clearance check
-    BACKWARD_CLEARANCE_THRESHOLD_M = 0.35
+    BACKWARD_CLEARANCE_THRESHOLD_M = 0.2
     BACKWARD_CLEARANCE_CONE_CENTER_DEG = 180.0
-    BACKWARD_CLEARANCE_CONE_OFFSET_DEG = 30.0
+    BACKWARD_CLEARANCE_CONE_OFFSET_DEG = 90.0
     ROTATION_STEP_DEG_FOR_CLEARANCE = 15.0
     ROTATION_DIRECTION_FOR_CLEARANCE = -1
 
