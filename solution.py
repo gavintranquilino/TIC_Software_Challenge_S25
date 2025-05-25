@@ -73,7 +73,7 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
     else:
         robot.get_logger().info("Safety Maneuver: In C3, not restarting keyboard control.")
 
-challengeLevel = 2
+challengeLevel = 3
 is_SIM = False
 Debug = False
 
@@ -246,8 +246,8 @@ try:
     if challengeLevel == 3:
         robot.get_logger().info("Challenge Level 3: Simplified Autonomous Navigation Mode Activated.")
 
-        AUTONOMOUS_FORWARD_SPEED = 0.5
-        AUTONOMOUS_FORWARD_BURST_DURATION = 0.5 
+        AUTONOMOUS_FORWARD_SPEED = 0.3
+        AUTONOMOUS_FORWARD_BURST_DURATION = 0.3 
         AUTONOMOUS_OBSTACLE_DIST_M = 0.4
         AUTONOMOUS_OBSTACLE_CONE_CENTER_DEG = 0.0
         AUTONOMOUS_OBSTACLE_CONE_OFFSET_DEG = 30.0
