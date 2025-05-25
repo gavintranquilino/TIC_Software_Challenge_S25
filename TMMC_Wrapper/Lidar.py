@@ -55,7 +55,7 @@ class Lidar:
                 relevent_range = relevent_1 + relevent_2
                 min_dist = min(relevent_range)
                 min_dist_index = relevent_range.index(min_dist)
-                print(min_dist_index)
+                # print(min_dist_index)
                 if min_dist_index > left:
                     min_dist_index = min_dist_index + right - left
             else:

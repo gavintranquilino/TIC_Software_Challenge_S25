@@ -194,36 +194,94 @@ class Control:
             # Start the continuous update thread. Make sure it is a daemon thread so it doesn't block shutdown.
             self.robot.update_thread = threading.Thread(target=key_control_loop, daemon=True)
             self.robot.update_thread.start()
-        else:
-            print("Keyboard listener already running")
+            self.robot.get_logger().info('Keyboard control listener started.')
+            self.sub_keyboard = None # Make sure this is reset
 
     def stop_keyboard_control(self):
-        ''' Stops the keyboard listener and terminates the update thread for keyboard control. '''
-        if self.robot.keyboard_listener is not None:
-            self.robot.keyboard_listener.stop()
-            self.robot.keyboard_listener = None
-            if self.robot.DEBUG:
-                print("Keyb list stopped")
-        else: 
-            print("Keyb list is not running")
+        """Stops the keyboard control listener and its associated update thread."""
+        listener_stopped = False
+        thread_stopped = False
 
-        if hasattr(self, 'stop_event'):
-            self.robot.stop_event.set()
-        if hasattr(self, 'update_thread'):
-            self.robot.update_thread.join()
+        # Stop the pynput listener
+        if hasattr(self.robot, 'keyboard_listener') and self.robot.keyboard_listener is not None:
+            self.robot.get_logger().info('Attempting to stop pynput keyboard listener...')
+            try:
+                # The pynput listener runs in its own thread. stop() signals it.
+                self.robot.keyboard_listener.stop()
+                # Join the listener's thread to ensure it has exited.
+                # The Listener object itself is a subclass of threading.Thread.
+                self.robot.keyboard_listener.join(timeout=1.0)
+                if self.robot.keyboard_listener.is_alive():
+                    self.robot.get_logger().warn('Pynput keyboard listener thread did not stop after join.')
+                else:
+                    self.robot.get_logger().info('Pynput keyboard listener stopped.')
+                    listener_stopped = True
+            except Exception as e:
+                self.robot.get_logger().error(f'Exception while stopping pynput listener: {e}')
+            finally:
+                self.robot.keyboard_listener = None
+        else:
+            self.robot.get_logger().debug('No active pynput keyboard listener to stop (or already None).')
+            listener_stopped = True # Effectively stopped if it doesn't exist or is None
 
-    def move_forward(self):
-        ''' Sends a command to move the robot forward at a speed scaled by the robot\'s constant speed control factor. '''
-        self.send_cmd_vel(self.robot.CONST_speed_control, 0.0)
+        # Stop the command update thread
+        if hasattr(self.robot, 'update_thread') and self.robot.update_thread is not None:
+            self.robot.get_logger().info('Attempting to stop command update thread...')
+            if hasattr(self.robot, 'stop_event') and self.robot.stop_event is not None:
+                self.robot.stop_event.set() # Signal the loop to exit
+            
+            if self.robot.update_thread.is_alive():
+                self.robot.update_thread.join(timeout=1.0)
+                if self.robot.update_thread.is_alive():
+                    self.robot.get_logger().warn('Command update thread did not stop after join.')
+                else:
+                    self.robot.get_logger().info('Command update thread stopped.')
+                    thread_stopped = True
+            else:
+                self.robot.get_logger().info('Command update thread was not alive.')
+                thread_stopped = True # Effectively stopped if not alive
+            self.robot.update_thread = None
+        else:
+            self.robot.get_logger().debug('No active command update thread to stop (or already None).')
+            thread_stopped = True # Effectively stopped if it doesn't exist or is None
 
-    def move_backward(self):
-        ''' Sends a command to move the robot backward at a speed scaled by the robot\'s constant speed control factor. '''
-        self.send_cmd_vel(-self.robot.CONST_speed_control, 0.0)
+        # Clear the stop event
+        if hasattr(self.robot, 'stop_event'):
+            self.robot.stop_event = None
+        
+        # Clean up sub_keyboard (from original code, start_keyboard_control sets it to None)
+        if hasattr(self, 'sub_keyboard') and self.sub_keyboard is not None:
+            self.robot.get_logger().info('Destroying keyboard subscriber (sub_keyboard).')
+            try:
+                self.sub_keyboard.destroy()
+            except Exception as e:
+                self.robot.get_logger().error(f'Error destroying sub_keyboard: {e}')
+            finally:
+                self.sub_keyboard = None
+            
+        if listener_stopped and thread_stopped:
+            self.robot.get_logger().info('Keyboard control stopping process completed.')
+        else:
+            self.robot.get_logger().warn('Keyboard control may not have been fully stopped.')
 
-    def turn_left(self):
-        ''' Sends a command to turn the robot left at an angular velocity scaled by the robot\'s constant speed control factor. '''
-        self.send_cmd_vel(0.0, self.robot.CONST_speed_control)
+    def teleop_twist_callback(self, msg):
+        """Receives and processes Twist messages for robot movement control."""
+        if self.robot.input:  # Check if input processing is enabled
+            # Extract linear and angular velocities from the Twist message
+            linear_x = msg.linear.x
+            angular_z = msg.angular.z
 
-    def turn_right(self):
-        ''' Sends a command to turn the robot right at an angular velocity scaled by the robot\'s constant speed control factor. '''
-        self.send_cmd_vel(0.0, -self.robot.CONST_speed_control)
+            # Log the received velocities at the DEBUG level
+            self.robot.get_logger().debug(f'Received linear_x: {linear_x}, angular_z: {angular_z}')
+
+            # Scale the velocities for finer control
+            scaled_linear_x = linear_x * self.robot.CONST_speed_control
+            scaled_angular_z = angular_z * self.robot.CONST_speed_control
+
+            # Log the scaled velocities at the DEBUG level
+            self.robot.get_logger().debug(f'Scaled linear_x: {scaled_linear_x}, angular_z: {scaled_angular_z}')
+
+            # Send the scaled velocities to the robot
+            self.send_cmd_vel(scaled_linear_x, scaled_angular_z)
+        else:
+            self.robot.get_logger().info('Input processing is disabled. Twist messages will not control the robot.')
