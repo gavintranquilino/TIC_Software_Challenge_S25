@@ -105,9 +105,29 @@ class Control:
         if self.robot.DEBUG:
             print("turn complete")
 
+    def move_forward(self):
+        """Moves the robot forward."""
+        # Assuming a default forward speed, adjust if necessary
+        # Or use a constant from self.robot if available, e.g., self.robot.DEFAULT_LINEAR_SPEED
+        self.send_cmd_vel(0.5, 0.0)
+
+    def move_backward(self):
+        """Moves the robot backward."""
+        # Assuming a default backward speed, adjust if necessary
+        self.send_cmd_vel(-0.5, 0.0)
+
+    def turn_left(self):
+        """Turns the robot left."""
+        # Assuming a default left turn speed, adjust if necessary
+        self.send_cmd_vel(0.0, 1.0)
+
+    def turn_right(self):
+        """Turns the robot right."""
+        # Assuming a default right turn speed, adjust if necessary
+        self.send_cmd_vel(0.0, -1.0)
         
     def send_cmd_vel(self, linear_x : float, angular_z : float):
-        ''' Publishes a twist message to robot\'s command velocity topic using the provided linear and angular velocity values. '''
+        ''' Publishes a twist message to robot\\\'s command velocity topic using the provided linear and angular velocity values. '''
         msg = Twist()
         msg.linear.x = linear_x
         msg.angular.z = angular_z

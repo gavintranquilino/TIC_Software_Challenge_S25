@@ -72,7 +72,7 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
     else:
         robot.get_logger().info("Safety Maneuver: In C3, not restarting keyboard control.")
 
-challengeLevel = 3
+challengeLevel = 2
 is_SIM = True
 Debug = False
 
@@ -197,16 +197,17 @@ try:
                             approaching_stop_sign = False
                             control.start_keyboard_control() 
                         elif box_width > STOP_SIGN_APPROACH_WIDTH_THRESHOLD:
-                            robot.get_logger().info(f"C2: Approached stop sign (width {box_width}px). Stopping.")
-                            control.set_cmd_vel(0.0, 0.0, duration=0.1) 
-                            time.sleep(STOP_SIGN_DURATION) 
-                            last_stop_sign_action_time = time.time()
+                            robot.get_logger().info(f"C2: Approached stop sign (width {box_width}px). Stopping for {STOP_SIGN_DURATION}s.")
+                            # Keyboard is already stopped from when approaching_stop_sign was set to True.
+                            # Use set_cmd_vel for the timed stop, replacing time.sleep().
+                            control.set_cmd_vel(0.0, 0.0, duration=STOP_SIGN_DURATION) 
+                            last_stop_sign_action_time = time.time() # Record time after stop is complete
                             approaching_stop_sign = False
                             robot.get_logger().info("C2: Stop sign action complete. Resuming keyboard control.")
                             control.start_keyboard_control() 
                         else: 
                             robot.get_logger().info(f"C2: Approaching stop sign (width {box_width}px). Keyboard remains paused. User should drive closer.")
-                            control.set_cmd_vel(0.0, 0.0, duration=0.1)
+                            control.set_cmd_vel(0.0, 0.0, duration=0.1) # Hold position briefly
 
                     elif is_stop_sign_visible and (current_time - last_stop_sign_action_time > STOP_SIGN_COOLDOWN):
                         if not stop_sign_detected_previously:
