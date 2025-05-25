@@ -73,7 +73,7 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
     else:
         robot.get_logger().info("Safety Maneuver: In C3, not restarting keyboard control.")
 
-challengeLevel = 3
+challengeLevel = 2
 is_SIM = False
 Debug = False
 
@@ -206,9 +206,9 @@ try:
                             # Use set_cmd_vel for the timed stop, replacing time.sleep().
                             control.set_cmd_vel(0.0, 0.0, duration=STOP_SIGN_DURATION)
 
-                            control.turn_right(90.0, 1) # Turn right 90 degrees after stopping
+                            control.send_cmd_vel(0.0, -1.0)
                             control.set_cmd_vel(1.0, 0.0, duration=0.5) # Ensure robot is stopped after turn
-                            control.turn_left(90.0, 1) # Turn left 90 degrees to face forward again
+                            control.send_cmd_vel(0.0, 1.0)
 
                             last_stop_sign_action_time = time.time() # Record time after stop is complete
                             approaching_stop_sign = False
