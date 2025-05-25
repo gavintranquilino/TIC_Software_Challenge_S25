@@ -30,9 +30,10 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
     control.set_cmd_vel(0.0, 0.0, duration=2)
 
     # Parameters for backward clearance check
-    BACKWARD_CLEARANCE_THRESHOLD_M = 0.2
+    BACKWARD_CLEARANCE_THRESHOLD_M = 0.3
     BACKWARD_CLEARANCE_CONE_CENTER_DEG = 180.0
-    BACKWARD_CLEARANCE_CONE_OFFSET_DEG = 90.0
+    BACKWARD_CLEARANCE_CONE_OFFSET_DEG = 60.0
+
     ROTATION_STEP_DEG_FOR_CLEARANCE = 15.0
     ROTATION_DIRECTION_FOR_CLEARANCE = -1
 
@@ -59,7 +60,7 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
             time.sleep(0.2)
 
     robot.get_logger().info("Safety Maneuver: Moving backward")
-    control.set_cmd_vel(-1.0, 0.0, duration=0.5)
+    control.set_cmd_vel(-0.3, 0.0, duration=1.5) # Adjusted for more noticeable backward movement
     
     robot.get_logger().info("Safety Maneuver: Ensuring robot is stopped after backward movement.")
     control.set_cmd_vel(0.0, 0.0, duration=1)
@@ -73,7 +74,7 @@ def perform_safety_maneuver(control, robot, current_lidar_instance): # Added cur
         robot.get_logger().info("Safety Maneuver: In C3, not restarting keyboard control.")
 
 challengeLevel = 2
-is_SIM = True
+is_SIM = False
 Debug = False
 
 # Initialization    
@@ -149,7 +150,7 @@ try:
             pass
 
     if challengeLevel == 2:
-        OBSTACLE_DETECTION_DISTANCE_THRESHOLD = 0.35  # meters
+        OBSTACLE_DETECTION_DISTANCE_THRESHOLD = 0.3  # meters
         OBSTACLE_DETECTION_CONE_CENTER_DEG = 0.0  # degrees, front of the robot
         OBSTACLE_DETECTION_CONE_OFFSET_DEG = 30.0 # degrees, +/- 30 degrees from center (total 60 degree cone)
 
@@ -197,10 +198,18 @@ try:
                             approaching_stop_sign = False
                             control.start_keyboard_control() 
                         elif box_width > STOP_SIGN_APPROACH_WIDTH_THRESHOLD:
+                            control.set_cmd_vel(1.0, 0.0, duration=1) # Ensure robot is stopped
+
                             robot.get_logger().info(f"C2: Approached stop sign (width {box_width}px). Stopping for {STOP_SIGN_DURATION}s.")
+
                             # Keyboard is already stopped from when approaching_stop_sign was set to True.
                             # Use set_cmd_vel for the timed stop, replacing time.sleep().
-                            control.set_cmd_vel(0.0, 0.0, duration=STOP_SIGN_DURATION) 
+                            control.set_cmd_vel(0.0, 0.0, duration=STOP_SIGN_DURATION)
+
+                            control.turn_right(90.0, 1) # Turn right 90 degrees after stopping
+                            control.set_cmd_vel(1.0, 0.0, duration=0.5) # Ensure robot is stopped after turn
+                            control.turn_left(90.0, 1) # Turn left 90 degrees to face forward again
+
                             last_stop_sign_action_time = time.time() # Record time after stop is complete
                             approaching_stop_sign = False
                             robot.get_logger().info("C2: Stop sign action complete. Resuming keyboard control.")
@@ -237,7 +246,7 @@ try:
     if challengeLevel == 3:
         robot.get_logger().info("Challenge Level 3: Simplified Autonomous Navigation Mode Activated.")
 
-        AUTONOMOUS_FORWARD_SPEED = 0.2
+        AUTONOMOUS_FORWARD_SPEED = 0.5
         AUTONOMOUS_FORWARD_BURST_DURATION = 0.5 
         AUTONOMOUS_OBSTACLE_DIST_M = 0.4
         AUTONOMOUS_OBSTACLE_CONE_CENTER_DEG = 0.0
